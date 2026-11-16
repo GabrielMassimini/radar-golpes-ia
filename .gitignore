@@ -1,0 +1,20 @@
+# Segredos
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Vercel
+.vercel/
+
+# Resultados brutos dos evals (só o relatório escolhido vai para docs/)
+evals/resultados/
+
+# Configuração local do editor/assistente
+.claude/settings.local.json
+
+# Anotações locais de planejamento
+prompt-radar-golpes-claude-code.md
