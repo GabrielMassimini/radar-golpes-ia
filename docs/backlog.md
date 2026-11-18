@@ -4,6 +4,8 @@ Coisas combinadas para fazer depois, com a fase em que entram.
 
 ## Pendentes
 
+- [ ] **Fases 3 e 4: projeto neutro, sem cara de uma empresa só** (testes da Fase 1 já diversificados). Nos exemplos dos prompts (v2/v3) e no dataset, variar as marcas e usar termos genéricos ("marketplace", "loja", "banco") quando a marca não for essencial. A especificação original repete muito uma mesma plataforma de classificados, e a ideia é diversificar sem perder os padrões de golpe.
+
 - [ ] **Fase 2:** provedor Gemini (camada gratuita) pelo endpoint compatível com OpenAI. Confirmar o modelo padrão olhando os limites grátis no AI Studio e se o endpoint aceita `response_format` com JSON Schema estrito. O Claude fica como provedor opcional.
 - [ ] **Fase 4:** evals respeitando o limite da camada grátis: pouco paralelismo e pausa automática no erro 429. A coluna de custo mostra quanto custaria no plano pago.
 - [ ] **Fase 5:** aviso na página de demo: "Não cole dados pessoais. O texto é processado por um serviço de IA gratuito (Google Gemini)". Na camada grátis, o Google pode usar o conteúdo para melhorar os produtos dele.

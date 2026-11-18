@@ -4,6 +4,8 @@
 
 Sistema que recebe um anúncio, uma mensagem ou um print (marketplaces, WhatsApp, SMS, e-mail, redes sociais) e devolve o **risco de ser golpe**, com os sinais explicados e o trecho do conteúdo que comprova cada um.
 
+É uma ferramenta **geral**, sem vínculo com nenhuma empresa. As marcas citadas no código e nos exemplos (bancos, lojas, órgãos públicos, marketplaces) aparecem apenas como **exemplos de domínios oficiais que golpistas costumam imitar**. Todos os casos de exemplo são fictícios.
+
 <!-- Link da demo, link do bot e GIF entram aqui na Fase 8 -->
 
 ## O problema
@@ -46,7 +48,17 @@ cp .env.example .env   # depois preencha as chaves no .env
 
 No PowerShell, a ativação é `.\.venv\Scripts\Activate.ps1`. No Mac/Linux, `source .venv/bin/activate`.
 
-_Testes, evals, deploy e bot: em construção._
+### Testes (sem custo de API)
+```bash
+pytest -v
+```
+
+### Experimentar as regras automáticas
+```bash
+python -c "from radar.sinais import detectar_sinais, resumo_para_prompt; print(resumo_para_prompt(detectar_sinais('URGENTE! Sua conta será bloqueada. Acesse banco-seguranca.top/login')))"
+```
+
+_Evals, deploy e bot: em construção._
 
 ## Métricas
 
@@ -69,7 +81,7 @@ _Em construção._
 | Fase | O que entrega | Status |
 |---|---|---|
 | 0 | Preparação: ambiente, dependências, Git | ✅ concluída |
-| 1 | Regras automáticas (sem IA) + testes | ⏳ |
+| 1 | Regras automáticas (sem IA) + testes | ✅ concluída |
 | 2 | Schema de saída e chamada ao LLM | ⏳ |
 | 3 | Prompts versionados v1 → v3 | ⏳ |
 | 4 | Dataset e avaliação | ⏳ |
@@ -82,3 +94,11 @@ _Em construção._
 
 - **Fase 0:** ambiente virtual com Python 3.12, dependências com versão fixa (`==`) para o deploy instalar exatamente o que roda localmente, `.gitignore` protegendo chaves e resultados brutos, e `.env.example` documentando as variáveis.
 - **Decisão de custo:** o LLM padrão é o Gemini na camada gratuita, então o projeto inteiro roda sem custo. O código trata o provedor como peça trocável (Gemini, Claude, OpenAI ou só regras), e a avaliação mostra quanto cada modelo custaria no plano pago. O lado ruim é que, na camada grátis, o Google pode usar o conteúdo enviado. Por isso, a demo avisa para não colar dados pessoais.
+- **Fase 1: regras automáticas ([`radar/sinais.py`](radar/sinais.py)).** São 14 sinais objetivos, sem IA:
+  - 5 de links: encurtador, IP, punycode, final de domínio suspeito e domínio que imita uma marca sem ser o oficial;
+  - 9 de texto: pagamento antecipado, pedido de código ou senha, sair da plataforma, urgência ou ameaça, troca de número, ganho fácil, prêmio ou restituição, comprovante ou intermediário falso, e tentativa de manipular a IA.
+
+  Cada sinal traz a **evidência**: o trecho exato do texto original, sem cortar palavras. A regex roda no texto normalizado (minúsculo e sem acento), e um mapa de posições devolve o trecho com a escrita original. São 29 testes com pytest.
+  - **Por que regras antes do LLM:** são grátis, instantâneas e explicáveis, e viram o **baseline** que o LLM precisa superar na avaliação.
+  - **Por que são pista, e não veredito:** elas não entendem contexto. O SMS legítimo *"Seu código de verificação é 482913. Não compartilhe"* dispara o sinal de "pedido de código". O LLM recebe as pistas e decide lendo o conteúdo inteiro.
+  - **Detalhe de segurança de links:** quem manda num endereço é o **final** do domínio. `app.nubank.com.br` é oficial, mas `nubank.com.br.golpe.xyz` não é.
