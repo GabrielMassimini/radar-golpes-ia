@@ -53,10 +53,14 @@ No PowerShell, a ativação é `.\.venv\Scripts\Activate.ps1`. No Mac/Linux, `so
 pytest -v
 ```
 
-### Experimentar as regras automáticas
+### Analisar uma mensagem pelo terminal
 ```bash
-python -c "from radar.sinais import detectar_sinais, resumo_para_prompt; print(resumo_para_prompt(detectar_sinais('URGENTE! Sua conta será bloqueada. Acesse banco-seguranca.top/login')))"
+python -m radar "URGENTE! Sua conta será bloqueada. Acesse banco-seguranca.top/login"
+python -m radar "..." --modelo mock      # só regras, sem IA e sem chave
+python -m radar "..." --prompt v1        # escolhe a versão do prompt
 ```
+
+A saída é um JSON com a análise, os sinais das regras e as medições (latência, tokens, custo e ancoragem). O modelo padrão é o `gemini-3.5-flash-lite` e precisa da `GEMINI_API_KEY` no `.env`.
 
 _Evals, deploy e bot: em construção._
 
@@ -82,7 +86,7 @@ _Em construção._
 |---|---|---|
 | 0 | Preparação: ambiente, dependências, Git | ✅ concluída |
 | 1 | Regras automáticas (sem IA) + testes | ✅ concluída |
-| 2 | Schema de saída e chamada ao LLM | ⏳ |
+| 2 | Schema de saída e chamada ao LLM | ✅ concluída |
 | 3 | Prompts versionados v1 → v3 | ⏳ |
 | 4 | Dataset e avaliação | ⏳ |
 | 5 | API e página de demo | ⏳ |
@@ -102,3 +106,12 @@ _Em construção._
   - **Por que regras antes do LLM:** são grátis, instantâneas e explicáveis, e viram o **baseline** que o LLM precisa superar na avaliação.
   - **Por que são pista, e não veredito:** elas não entendem contexto. O SMS legítimo *"Seu código de verificação é 482913. Não compartilhe"* dispara o sinal de "pedido de código". O LLM recebe as pistas e decide lendo o conteúdo inteiro.
   - **Detalhe de segurança de links:** quem manda num endereço é o **final** do domínio. `app.nubank.com.br` é oficial, mas `nubank.com.br.golpe.xyz` não é.
+- **Fase 2: contrato de saída e chamada ao LLM.**
+  - **Contrato único ([`radar/schema.py`](radar/schema.py)):** um modelo Pydantic define a resposta (nível de risco, pontuação, categoria, sinais com trecho, explicação, recomendação e confiança). Ele vira um JSON Schema estrito, igual para todos os provedores. As descrições dos campos também funcionam como instrução para o modelo.
+  - **Provedores trocáveis ([`radar/provedores.py`](radar/provedores.py)):** Gemini (padrão, pelo endpoint compatível com OpenAI), Claude (opcional), OpenAI e um **mock** que responde só com as regras. Todos usam **saída estruturada**: o modelo só consegue responder no formato do schema. O Claude não aceita `minimum`/`maximum` no schema, então a faixa 0–100 é conferida pelo Pydantic depois.
+  - **Detector ([`radar/detector.py`](radar/detector.py)):** junta regras, prompt, provedor e validação. Se o JSON vier fora do formato, tenta **mais uma vez**. Se a API falhar, **não** repete (o SDK já repete sozinho) e devolve o erro no resultado, sem derrubar quem chamou.
+  - **Medições em toda análise:** latência, tokens (incluindo o raciocínio interno, que é cobrado como saída), custo "se fosse pago" e **ancoragem**: a fração dos trechos citados pelo modelo que existem de verdade no texto. A ancoragem pegou um bug real: o mock estava citando o texto do próprio prompt como se fosse do usuário.
+  - **Segurança do prompt ([`radar/prompts.py`](radar/prompts.py)):** o conteúdo do usuário é encaixado numa passada só (quem escreve `{sinais}` na mensagem não injeta nada), a versão do prompt só aceita `v` + número (bloqueia `../../.env`) e todo prompt precisa colocar o conteúdo entre marcações `<conteudo_analisado>`.
+  - **Raciocínio "low":** o Gemini 3.x não permite desligar o raciocínio. Como classificar golpe é tarefa curta, uso o esforço baixo: gasta menos cota e responde mais rápido. A comparação com dados fica para os evals.
+  - **Partida mais rápida:** o SDK da Anthropic leva alguns segundos para carregar, então só é importado quando um modelo Claude é usado.
+  - **Primeira chamada real** (v1 + `gemini-3.5-flash-lite`): risco alto e categoria correta, 1 tentativa, ancoragem 1.0, 80 tokens de entrada e 289 de saída, 2,3 s e US$ 0,0007 se fosse pago. São 113 testes, todos sem chamar API.
