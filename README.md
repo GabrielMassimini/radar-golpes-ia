@@ -30,7 +30,15 @@ _Em construção._
 
 ## Prompts
 
-_Em construção (Fase 3)._
+Os prompts ficam fora do código, em [`prompts/`](prompts/), uma pasta por versão. O schema de saída é o mesmo nas três, então a comparação mede só o efeito da instrução. Hipóteses, mudanças e resultados estão em [`prompts/CHANGELOG.md`](prompts/CHANGELOG.md).
+
+| Versão | Ideia | Resultado nos 3 exemplos de teste |
+|---|---|---|
+| v1 | Baseline ingênuo: uma linha de instrução | Acertou os 3 |
+| v2 | Critérios explícitos e calibração dos níveis | Caiu no prompt injection nas 2 rodadas |
+| v3 | Sinais automáticos, regra de segurança, 3 exemplos resolvidos e trecho exato | Acertou os 3 (é a versão padrão) |
+
+São só 3 exemplos: servem para ver o comportamento. A medição de verdade é o dataset da Fase 4.
 
 ## Como rodar
 
@@ -60,6 +68,13 @@ python -m radar "..." --modelo mock      # só regras, sem IA e sem chave
 python -m radar "..." --prompt v1        # escolhe a versão do prompt
 ```
 
+### Comparar versões de prompt
+```bash
+python -m radar.comparar v1 v2 v3
+```
+
+Roda cada versão em 3 exemplos fictícios (golpe óbvio, legítimo com "URGENTE" e prompt injection) e mostra uma tabela. São 9 chamadas, com pausa de 5 s entre elas por causa do limite da camada grátis.
+
 A saída é um JSON com a análise, os sinais das regras e as medições (latência, tokens, custo e ancoragem). O modelo padrão é o `gemini-3.5-flash-lite` e precisa da `GEMINI_API_KEY` no `.env`.
 
 _Evals, deploy e bot: em construção._
@@ -87,7 +102,7 @@ _Em construção._
 | 0 | Preparação: ambiente, dependências, Git | ✅ concluída |
 | 1 | Regras automáticas (sem IA) + testes | ✅ concluída |
 | 2 | Schema de saída e chamada ao LLM | ✅ concluída |
-| 3 | Prompts versionados v1 → v3 | ⏳ |
+| 3 | Prompts versionados v1 → v3 | ✅ concluída |
 | 4 | Dataset e avaliação | ⏳ |
 | 5 | API e página de demo | ⏳ |
 | 6 | Deploy na Vercel | ⏳ |
@@ -115,3 +130,10 @@ _Em construção._
   - **Raciocínio "low":** o Gemini 3.x não permite desligar o raciocínio. Como classificar golpe é tarefa curta, uso o esforço baixo: gasta menos cota e responde mais rápido. A comparação com dados fica para os evals.
   - **Partida mais rápida:** o SDK da Anthropic leva alguns segundos para carregar, então só é importado quando um modelo Claude é usado.
   - **Primeira chamada real** (v1 + `gemini-3.5-flash-lite`): risco alto e categoria correta, 1 tentativa, ancoragem 1.0, 80 tokens de entrada e 289 de saída, 2,3 s e US$ 0,0007 se fosse pago. São 113 testes, todos sem chamar API.
+- **Fase 3: prompts versionados.**
+  - **Três versões, uma hipótese cada** ([`prompts/CHANGELOG.md`](prompts/CHANGELOG.md)): v1 ingênuo, v2 com critérios e calibração, v3 com sinais das regras, regra de segurança, 3 exemplos resolvidos e exigência de trecho exato. Cada versão foi escrita e testada uma de cada vez.
+  - **O achado:** o v2 **caiu no prompt injection** que o v1 acertava, nas 2 rodadas. A lista de "sinais que sozinhos não indicam golpe" deixou o modelo mais permissivo, e ele obedeceu à "instrução do sistema" escrita dentro do anúncio. Mais instrução não é sempre melhor: o v3 só acertou porque traz uma regra de segurança explícita.
+  - **Defesa em duas camadas:** no código, marcações `<conteudo_analisado>` escritas pelo usuário viram `[conteudo_analisado]` e não conseguem "fechar" a marcação real; no prompt, o v3 trata essa tentativa como forte sinal de golpe.
+  - **Custo do prompt maior:** a entrada do v3 tem ~1.600 tokens, contra ~100 do v1. Como a saída pesa mais no preço, a análise sai cerca de 1,6 vez mais cara no plano pago (~US$ 0,0011).
+  - **Honestidade na comparação:** não troquei os exemplos depois de ver os resultados, e não corrigi as regras que falharam no caso de injection antes da avaliação, para o baseline não ficar artificialmente bom.
+  - **Neutralidade:** os exemplos dos prompts usam nomes genéricos ("marketplace", "banco") em vez de marcas reais.

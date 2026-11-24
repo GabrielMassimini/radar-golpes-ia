@@ -15,8 +15,8 @@ from pathlib import Path
 
 PASTA_PROMPTS = Path(__file__).resolve().parent.parent / "prompts"
 
-# Vira "v3" na Fase 3, quando o v3 existir.
-VERSAO_PADRAO = "v1"
+# Versão que a API usa. As outras ficam para comparação (prompts/CHANGELOG.md).
+VERSAO_PADRAO = "v3"
 
 # Só "v" + número: impede pedir "../../.env" e ler outros arquivos.
 _FORMATO_VERSAO = re.compile(r"v\d+")
@@ -26,6 +26,11 @@ _ESPACOS = re.compile(r"\{(conteudo|sinais)\}")
 
 # O conteúdo do usuário sempre fica entre marcações, separado das instruções.
 _MOLDURA = re.compile(r"<conteudo_analisado>\s*\{conteudo\}\s*</conteudo_analisado>")
+
+# Marcações que o template usa. Se aparecerem no texto do usuário (até com
+# espaços ou maiúsculas), viram colchetes: assim o conteúdo não consegue
+# "fechar" a marcação e fingir que o resto é instrução.
+_MARCACOES = re.compile(r"<\s*(/?)\s*(conteudo_analisado|sinais_automaticos)\s*>", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -72,5 +77,10 @@ def montar_mensagem(prompt: Prompt, conteudo: str, sinais: str = "") -> str:
     Não usa str.format(): o conteúdo pode ter {chaves}. A troca é feita numa
     passada só, então nada que vem do usuário é substituído de novo.
     """
-    valores = {"conteudo": conteudo, "sinais": sinais}
+    valores = {"conteudo": neutralizar(conteudo), "sinais": neutralizar(sinais)}
     return _ESPACOS.sub(lambda m: valores[m.group(1)], prompt.user)
+
+
+def neutralizar(texto: str) -> str:
+    """Troca <conteudo_analisado>, </sinais_automaticos> etc. por [conteudo_analisado]..."""
+    return _MARCACOES.sub(lambda m: f"[{m.group(1)}{m.group(2).lower()}]", texto)
