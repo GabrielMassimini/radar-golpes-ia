@@ -1,0 +1,1 @@
+"""Avaliação do radar: dataset rotulado, métricas e execução."""

@@ -77,15 +77,38 @@ Roda cada versão em 3 exemplos fictícios (golpe óbvio, legítimo com "URGENTE
 
 A saída é um JSON com a análise, os sinais das regras e as medições (latência, tokens, custo e ancoragem). O modelo padrão é o `gemini-3.5-flash-lite` e precisa da `GEMINI_API_KEY` no `.env`.
 
-_Evals, deploy e bot: em construção._
+### Avaliação
+```bash
+python -m evals.run_eval --versoes v3 --modelos regras                               # baseline, sem API
+python -m evals.run_eval --versoes v1,v2,v3 --modelos gemini-3.5-flash-lite          # 183 chamadas
+python -m evals.run_eval --versoes v3 --modelos gemini-3.5-flash-lite --dataset dificil
+```
+
+O script respeita o limite da camada grátis (14 chamadas por minuto, com espera automática no erro 429) e salva o `relatorio.md` em `evals/resultados/<data-hora>/`, fora do Git.
+
+_Deploy e bot: em construção._
 
 ## Métricas
 
-_Em construção (Fase 4)._
+Resultados completos e leitura em [`docs/resultados.md`](docs/resultados.md).
+
+| | Só regras | v1 | v2 | **v3 (padrão)** |
+|---|---|---|---|---|
+| Recall de golpes (principal / difícil) | 69,4% / 41,7% | 100% / 100% | 100% / 100% | **100% / 100%** |
+| Alarme falso (principal / difícil) | 16,0% / 50,0% | 0,0% / 12,5% | 4,0% / 12,5% | **0,0% / 0,0%** |
+| Legítimo marcado como "alto" | 0 | 1 | 2 | **0** |
+| US$ por 1.000 análises, se fosse pago | 0 | 0,48 | 0,68 | 1,03 |
+
+Modelo: `gemini-3.5-flash-lite`. Conjunto principal com 61 casos fictícios e conjunto difícil com 20, criado quando o principal saturou.
 
 ## Limitações e riscos
 
-_Em construção._
+- Os conjuntos de avaliação são pequenos e fictícios, escritos pelos autores. Cada combinação rodou uma vez.
+- Na camada grátis, o Google pode usar o conteúdo enviado. Por isso, a demo vai avisar para não colar dados pessoais.
+- Cerca de 1,5% das chamadas falharam por sobrecarga do provedor (erro 503).
+- O radar apoia a decisão, não garante nada: um golpe novo, diferente de tudo que foi testado, pode passar.
+
+_Versão completa na Fase 8._
 
 ## Uso de IA
 
@@ -103,7 +126,7 @@ _Em construção._
 | 1 | Regras automáticas (sem IA) + testes | ✅ concluída |
 | 2 | Schema de saída e chamada ao LLM | ✅ concluída |
 | 3 | Prompts versionados v1 → v3 | ✅ concluída |
-| 4 | Dataset e avaliação | ⏳ |
+| 4 | Dataset e avaliação | ✅ concluída |
 | 5 | API e página de demo | ⏳ |
 | 6 | Deploy na Vercel | ⏳ |
 | 7 | Bot do Telegram (n8n) | ⏳ |
@@ -137,3 +160,12 @@ _Em construção._
   - **Custo do prompt maior:** a entrada do v3 tem ~1.600 tokens, contra ~100 do v1. Como a saída pesa mais no preço, a análise sai cerca de 1,6 vez mais cara no plano pago (~US$ 0,0011).
   - **Honestidade na comparação:** não troquei os exemplos depois de ver os resultados, e não corrigi as regras que falharam no caso de injection antes da avaliação, para o baseline não ficar artificialmente bom.
   - **Neutralidade:** os exemplos dos prompts usam nomes genéricos ("marketplace", "banco") em vez de marcas reais.
+- **Fase 4: dataset e avaliação** ([`docs/resultados.md`](docs/resultados.md)).
+  - **Métricas ([`evals/metricas.py`](evals/metricas.py)):** recall de golpes contra alarme falso é o trade-off central. Desconfiar de tudo pega todos os golpes, mas faz a pessoa parar de confiar no radar. Também medi o erro mais grave (legítimo marcado como "alto"), acerto nos casos difíceis, injection bloqueada, categoria, coerência entre nível e pontuação, ancoragem, latência p50/p95 e custo por mil análises.
+  - **Execução ([`evals/run_eval.py`](evals/run_eval.py)):** respeita o limite da camada grátis (14 chamadas por minuto, espera de 1 minuto no erro 429) e gera um relatório com a tabela de erros e a explicação do modelo em cada um.
+  - **Baseline:** só com regras, 75,4% de acurácia e 69,4% de recall, iguais aos números de referência. Os golpes perdidos não tinham palavra-chave.
+  - **O dataset saturou:** até o v1 acertou tudo no conjunto principal. Criei um **conjunto difícil** de 20 casos (injections elaboradas, golpes sutis e legítimos que parecem golpe), congelado antes de rodar. Ali as versões se separaram, e as regras caíram para 45% de acurácia.
+  - **Resultado:** o v3 foi a única versão sem erro de análise nos dois conjuntos. O ganho dele foi não acusar mensagens legítimas que falam de código de verificação, erro que o v1 e o v2 cometeram com nível "alto".
+  - **Vazamentos tratados:** dois casos do dataset eram quase cópias dos exemplos do v3 e foram marcados e medidos à parte (sem mudança no resultado). O 100% de injection das regras estava inflado por frases copiadas do dataset; no conjunto difícil, ele caiu para 0%.
+  - **Modelo mais barato, análise mais cara:** o `gemini-3.1-flash-lite` cobra menos por token, mas escreveu o dobro de tokens de saída e saiu mais caro por análise. O 3.5 continua como padrão.
+  - **Sem v4:** o v3 não errou nenhuma resposta válida, e ajustar o prompt olhando os mesmos casos seria overfitting. São 238 testes, todos sem chamar API.
