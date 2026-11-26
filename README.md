@@ -6,7 +6,9 @@ Sistema que recebe um anúncio, uma mensagem ou um print (marketplaces, WhatsApp
 
 É uma ferramenta **geral**, sem vínculo com nenhuma empresa. As marcas citadas no código e nos exemplos (bancos, lojas, órgãos públicos, marketplaces) aparecem apenas como **exemplos de domínios oficiais que golpistas costumam imitar**. Todos os casos de exemplo são fictícios.
 
-<!-- Link da demo, link do bot e GIF entram aqui na Fase 8 -->
+**Demo:** [radar-golpes-ia.vercel.app](https://radar-golpes-ia.vercel.app) (limite de 15 análises por hora; não cole dados pessoais).
+
+<!-- Link do bot e GIF entram aqui na Fase 8 -->
 
 ## O problema
 
@@ -100,7 +102,19 @@ Abra `http://127.0.0.1:8000` para a página e `http://127.0.0.1:8000/docs` para 
 
 Sem o cabeçalho `X-Radar-Token`, vale o limite de `RADAR_LIMITE_DEMO` análises por hora por IP.
 
-_Deploy e bot: em construção._
+### Deploy (Vercel)
+O projeto sobe na Vercel sem build próprio: a Vercel reconhece o FastAPI pela entrada declarada no `pyproject.toml` (`api.index:app`) e serve a pasta `public/` pela CDN.
+
+| Arquivo | Para que serve |
+|---|---|
+| `pyproject.toml` | Entrada da API e dependências com versão exata (iguais às do `requirements.txt`) |
+| `.python-version` | Fixa o Python 3.12 |
+| `vercel.json` | Deixa a função rodar até 60 s |
+| `.vercelignore` | Deixa evals, testes e docs fora do pacote publicado |
+
+Variáveis de ambiente cadastradas no painel da Vercel: `GEMINI_API_KEY`, `RADAR_TOKEN` e `RADAR_LIMITE_DEMO`. Nenhuma fica no código.
+
+_Bot: em construção._
 
 ## Métricas
 
@@ -118,8 +132,9 @@ Modelo: `gemini-3.5-flash-lite`. Conjunto principal com 61 casos fictícios e co
 ## Limitações e riscos
 
 - Os conjuntos de avaliação são pequenos e fictícios, escritos pelos autores. Cada combinação rodou uma vez.
-- Na camada grátis, o Google pode usar o conteúdo enviado. Por isso, a demo vai avisar para não colar dados pessoais.
-- Cerca de 1,5% das chamadas falharam por sobrecarga do provedor (erro 503).
+- Na camada grátis, o Google pode usar o conteúdo enviado. Por isso, a demo avisa para não colar dados pessoais.
+- Cerca de 1,5% das chamadas falharam por sobrecarga do provedor (erro 503). Na demo, essa falha aparece como erro 502, e um novo envio costuma funcionar.
+- O limite de análises por hora fica na memória de cada instância da Vercel. Com várias instâncias, alguém insistente consegue um pouco mais que 15. O pior caso é a cota grátis do dia acabar, sem cobrança, porque não há cartão cadastrado.
 - O radar apoia a decisão, não garante nada: um golpe novo, diferente de tudo que foi testado, pode passar.
 
 _Versão completa na Fase 8._
@@ -142,7 +157,7 @@ _Em construção._
 | 3 | Prompts versionados v1 → v3 | ✅ concluída |
 | 4 | Dataset e avaliação | ✅ concluída |
 | 5 | API e página de demo | ✅ concluída |
-| 6 | Deploy na Vercel | ⏳ |
+| 6 | Deploy na Vercel | ✅ concluída |
 | 7 | Bot do Telegram (n8n) | ⏳ |
 | 8 | Documentação final do portfólio | ⏳ |
 
@@ -190,3 +205,9 @@ _Em construção._
   - **Privacidade:** o conteúdo só passa pela memória durante a análise, sem gravação nem log. O rodapé avisa que, na camada grátis, o Google pode usar o conteúdo.
   - **Página ([`public/index.html`](public/index.html)):** um arquivo só, sem framework. A mensagem reaparece com **marca-texto** nos trechos citados, numerados e ligados à explicação de cada sinal; em risco baixo, a marcação fica verde e mostra os sinais de segurança. Aceita print anexado ou colado com Ctrl+V, e reduz a imagem no navegador antes de enviar.
   - **Acessibilidade e segurança da página:** fonte *Atkinson Hyperlegible*, feita para leitura fácil; contraste acima de 4,5; foco visível no teclado; animação desligada para quem pede menos movimento; tudo que vem da API entra como texto, nunca como HTML.
+- **Fase 6: deploy na Vercel.** A demo está no ar em [radar-golpes-ia.vercel.app](https://radar-golpes-ia.vercel.app), no plano grátis da Vercel (Hobby), sem domínio próprio e sem cartão cadastrado.
+  - **Configuração mínima:** conferi na documentação da Vercel que ela reconhece o FastAPI sozinha. Bastou declarar a entrada no `pyproject.toml`, que repete as versões exatas do `requirements.txt`; um teste garante que as duas listas não se separem. O `.python-version` fixa o Python 3.12, o mesmo do ambiente local, e o log do build confirmou essa versão.
+  - **Tempo limite:** a função pode rodar por até 60 s. No computador, o SDK espera 30 s e repete até 3 vezes, o que poderia passar desse teto. Na Vercel (que define a variável `VERCEL`), cada chamada espera 20 s e repete só uma vez, então uma chamada ao modelo leva no máximo cerca de 40 s.
+  - **IP do visitante:** a Vercel sobrescreve o cabeçalho `X-Forwarded-For`, então ninguém consegue trocar o próprio IP no pedido para escapar do limite da demo.
+  - **Segredos:** a chave do Gemini e o token do n8n ficam só nas variáveis de ambiente da Vercel e no `.env` local, que não vai para o Git.
+  - **Testes no ar:** token errado devolveu 401. Em 17 pedidos seguidos sem token, o limite devolveu 429 depois da 15ª análise da hora. Com o token, 6 de 6 pedidos responderam em 1,7 a 3,4 s. Na rajada sem token, 2 pedidos falharam com 502 por instabilidade passageira do Gemini; a rodada seguinte não teve falha.
