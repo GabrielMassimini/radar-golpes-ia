@@ -1,3 +1,19 @@
+[project]
+name = "radar-golpes-ia"
+version = "1.0.0"
+description = "Radar de golpes digitais: regras automáticas + LLM com saída estruturada."
+requires-python = ">=3.12,<3.13"
+# Mesmas versões do requirements.txt (um teste confere que as duas listas batem).
+dependencies = [
+    "fastapi==0.163.1",
+    "pydantic==2.14.3",
+    "anthropic==2.8.0",
+    "openai==3.51.0",
+]
+
+[tool.vercel]
+entrypoint = "api.index:app"
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]

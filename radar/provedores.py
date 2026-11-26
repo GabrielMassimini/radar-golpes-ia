@@ -66,6 +66,18 @@ ESFORCO_GEMINI = "low"
 TIMEOUT_S = 30
 TENTATIVAS_SDK = 3  # o SDK repete sozinho em 429, 5xx e falha de conexão
 
+# Na Vercel a função tem no máximo 60 s. Com 30 s × 3 tentativas uma chamada
+# passaria disso, então lá cada chamada espera menos e repete uma vez só.
+TIMEOUT_VERCEL_S = 20
+TENTATIVAS_VERCEL = 1
+
+
+def _limites() -> tuple[float, int]:
+    """(tempo limite, novas tentativas). A Vercel define VERCEL=1 sozinha."""
+    if os.environ.get("VERCEL"):
+        return TIMEOUT_VERCEL_S, TENTATIVAS_VERCEL
+    return TIMEOUT_S, TENTATIVAS_SDK
+
 
 def _cliente(provedor: str) -> OpenAI:
     if provedor == "gemini":
@@ -75,7 +87,8 @@ def _cliente(provedor: str) -> OpenAI:
     chave = os.environ.get(variavel)
     if not chave:
         raise ErroProvedor(f"Falta a chave {variavel} no .env.")
-    return OpenAI(api_key=chave, base_url=base_url, timeout=TIMEOUT_S, max_retries=TENTATIVAS_SDK)
+    tempo, tentativas = _limites()
+    return OpenAI(api_key=chave, base_url=base_url, timeout=tempo, max_retries=tentativas)
 
 
 def _mensagens(system: str, mensagem: str, imagem: Imagem | None) -> list[dict[str, Any]]:
@@ -171,7 +184,8 @@ def _cliente_anthropic() -> Any:
     chave = os.environ.get("ANTHROPIC_API_KEY")
     if not chave:
         raise ErroProvedor("Falta a chave ANTHROPIC_API_KEY no .env.")
-    return anthropic.Anthropic(api_key=chave, timeout=TIMEOUT_S, max_retries=TENTATIVAS_SDK)
+    tempo, tentativas = _limites()
+    return anthropic.Anthropic(api_key=chave, timeout=tempo, max_retries=tentativas)
 
 
 def _mensagens_claude(mensagem: str, imagem: Imagem | None) -> list[dict[str, Any]]:

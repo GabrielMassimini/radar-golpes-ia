@@ -21,9 +21,9 @@ Coisas combinadas para fazer depois, com a fase em que entram.
   - Claude (conferido na documentação, nov/2026): "tool use forçado" (`tool_choice` do tipo `tool`) dá erro 400 no Sonnet 5.5 e no Opus 5.5. Usar saída estruturada nativa (`output_config.format` com JSON Schema). `temperature` dá erro 400 nos modelos atuais: não enviar.
   - `openai` 3.51 e endpoint do Gemini conferidos (18/11/2026): `response_format` json_schema strict aceito; o schema usa só recursos suportados (enum, minimum/maximum, required, additionalProperties). Raciocínio do Gemini 3.x não desliga → `reasoning_effort="low"`.
 - [x] **Fase 5:** página de demo sem fonte Inter, sem degradê roxo, sem ícone em quadradinho acima de cada título, contraste mínimo de 4,5 e respeito a `prefers-reduced-motion`.
-- [ ] **Fase 6:** confirmar que a Vercel roda Python 3.12.
-- [ ] **Fase 6 (da Fase 5):** a chamada ao Gemini tem tempo limite de 30 s e o SDK repete até 3 vezes; somando, pode passar dos 60 s que a função da Vercel permite. Ajustar o tempo limite e as repetições na API.
-- [ ] **Fase 6 (da Fase 5):** confirmar na documentação da Vercel qual cabeçalho traz o IP real do visitante e se ele pode ser falsificado (hoje a API usa o primeiro IP de `X-Forwarded-For`). Confirmar também o limite de tamanho do pedido (a API aceita print de até 3 MB).
+- [ ] **Fase 6:** confirmar no primeiro deploy que a Vercel usou Python 3.12 (fixado em `.python-version` e `requires-python`).
+- [x] **Fase 6 (da Fase 5):** a chamada ao Gemini tem tempo limite de 30 s e o SDK repete até 3 vezes; somando, pode passar dos 60 s que a função da Vercel permite. Ajustar o tempo limite e as repetições na API.
+- [x] **Fase 6 (da Fase 5):** confirmar na documentação da Vercel qual cabeçalho traz o IP real do visitante e se ele pode ser falsificado (hoje a API usa o primeiro IP de `X-Forwarded-For`). Confirmar também o limite de tamanho do pedido (a API aceita print de até 3 MB).
 - [ ] **Fase 8 (próximos passos do README):** WhatsApp, botão de feedback "acertou/errou" que vira caso novo no dataset, planilha de métricas sem dados pessoais, consulta de preço de mercado (ex.: tabela FIPE) como ferramenta do agente e cascata de modelos (Haiku → Sonnet quando a confiança for baixa).
 - [ ] **Próximos passos (decisão da Fase 4):** testar um **v3 enxuto**, com menos tokens e mais barato, validado com casos novos, fora dos dois datasets atuais.
 

@@ -1,0 +1,7 @@
+# Não vão para a Vercel: só servem para desenvolver e avaliar
+evals/
+tests/
+docs/
+n8n/
+.venv/
+.env

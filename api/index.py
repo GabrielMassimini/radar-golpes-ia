@@ -113,7 +113,8 @@ def _ler_imagem(dados: str, media_type: str | None) -> Imagem:
 
 
 def _ip(request: Request) -> str:
-    # Na Vercel o IP real chega em X-Forwarded-For (o primeiro da lista).
+    # Na Vercel o IP real chega em X-Forwarded-For. A Vercel sobrescreve esse
+    # cabeçalho, então o visitante não consegue falsificar o próprio IP.
     encaminhado = request.headers.get("x-forwarded-for", "")
     if encaminhado:
         return encaminhado.split(",")[0].strip()
