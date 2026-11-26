@@ -18,3 +18,6 @@ evals/resultados/
 
 # Anotações locais de planejamento
 prompt-radar-golpes-claude-code.md
+
+# Capturas de tela de testes no navegador
+.playwright-mcp/

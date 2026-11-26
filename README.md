@@ -86,6 +86,20 @@ python -m evals.run_eval --versoes v3 --modelos gemini-3.5-flash-lite --dataset 
 
 O script respeita o limite da camada grátis (14 chamadas por minuto, com espera automática no erro 429) e salva o `relatorio.md` em `evals/resultados/<data-hora>/`, fora do Git.
 
+### API e página de demo (local)
+```bash
+uvicorn api.index:app --reload
+```
+
+Abra `http://127.0.0.1:8000` para a página e `http://127.0.0.1:8000/docs` para testar a API.
+
+| Rota | O que faz |
+|---|---|
+| `GET /api/saude` | Diz se está no ar e qual prompt e modelo usa |
+| `POST /api/analisar` | Recebe `{texto, imagem_base64?, imagem_media_type?}` e devolve a análise |
+
+Sem o cabeçalho `X-Radar-Token`, vale o limite de `RADAR_LIMITE_DEMO` análises por hora por IP.
+
 _Deploy e bot: em construção._
 
 ## Métricas
@@ -127,7 +141,7 @@ _Em construção._
 | 2 | Schema de saída e chamada ao LLM | ✅ concluída |
 | 3 | Prompts versionados v1 → v3 | ✅ concluída |
 | 4 | Dataset e avaliação | ✅ concluída |
-| 5 | API e página de demo | ⏳ |
+| 5 | API e página de demo | ✅ concluída |
 | 6 | Deploy na Vercel | ⏳ |
 | 7 | Bot do Telegram (n8n) | ⏳ |
 | 8 | Documentação final do portfólio | ⏳ |
@@ -169,3 +183,10 @@ _Em construção._
   - **Vazamentos tratados:** dois casos do dataset eram quase cópias dos exemplos do v3 e foram marcados e medidos à parte (sem mudança no resultado). O 100% de injection das regras estava inflado por frases copiadas do dataset; no conjunto difícil, ele caiu para 0%.
   - **Modelo mais barato, análise mais cara:** o `gemini-3.1-flash-lite` cobra menos por token, mas escreveu o dobro de tokens de saída e saiu mais caro por análise. O 3.5 continua como padrão.
   - **Sem v4:** o v3 não errou nenhuma resposta válida, e ajustar o prompt olhando os mesmos casos seria overfitting. São 238 testes, todos sem chamar API.
+- **Fase 5: API e página de demo.**
+  - **API ([`api/index.py`](api/index.py)), em FastAPI:** valida a entrada (texto de até 6.000 caracteres; print em JPEG, PNG, WebP ou GIF de até 3 MB, conferindo os primeiros bytes do arquivo) e devolve erros claros: 400, 401, 413, 429 e 502.
+  - **Limite da demo:** 15 análises por hora por IP, numa janela deslizante em memória, contando só pedidos válidos. O n8n usa um token, comparado em tempo constante, e não tem limite. Em serverless esse limite é básico, porque cada instância tem o próprio contador; a proteção real é não ter cartão cadastrado no provedor, então o pior caso é a cota do dia acabar, não um gasto.
+  - **Sem CORS, de propósito:** a página é servida pela própria API e o n8n chama de servidor para servidor. Liberar CORS deixaria qualquer site usar a cota pelo navegador dos visitantes.
+  - **Privacidade:** o conteúdo só passa pela memória durante a análise, sem gravação nem log. O rodapé avisa que, na camada grátis, o Google pode usar o conteúdo.
+  - **Página ([`public/index.html`](public/index.html)):** um arquivo só, sem framework. A mensagem reaparece com **marca-texto** nos trechos citados, numerados e ligados à explicação de cada sinal; em risco baixo, a marcação fica verde e mostra os sinais de segurança. Aceita print anexado ou colado com Ctrl+V, e reduz a imagem no navegador antes de enviar.
+  - **Acessibilidade e segurança da página:** fonte *Atkinson Hyperlegible*, feita para leitura fácil; contraste acima de 4,5; foco visível no teclado; animação desligada para quem pede menos movimento; tudo que vem da API entra como texto, nunca como HTML.
