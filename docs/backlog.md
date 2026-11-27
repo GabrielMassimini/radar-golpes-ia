@@ -25,6 +25,7 @@ Coisas combinadas para fazer depois, com a fase em que entram.
 - [x] **Fase 6 (da Fase 5):** a chamada ao Gemini tem tempo limite de 30 s e o SDK repete até 3 vezes; somando, pode passar dos 60 s que a função da Vercel permite. Ajustar o tempo limite e as repetições na API.
 - [x] **Fase 6 (da Fase 5):** confirmar na documentação da Vercel qual cabeçalho traz o IP real do visitante e se ele pode ser falsificado (hoje a API usa o primeiro IP de `X-Forwarded-For`). Confirmar também o limite de tamanho do pedido (a API aceita print de até 3 MB).
 - [ ] **Fase 8 (próximos passos do README):** WhatsApp, botão de feedback "acertou/errou" que vira caso novo no dataset, planilha de métricas sem dados pessoais, consulta de preço de mercado (ex.: tabela FIPE) como ferramenta do agente e cascata de modelos (Haiku → Sonnet quando a confiança for baixa).
+- [ ] **Próximos passos (da Fase 7):** bot sempre no ar, com o n8n num servidor de endereço fixo e o editor atrás de uma rede privada, no lugar do computador pessoal com túnel rápido.
 - [ ] **Próximos passos (decisão da Fase 4):** testar um **v3 enxuto**, com menos tokens e mais barato, validado com casos novos, fora dos dois datasets atuais.
 
 ## Feitos

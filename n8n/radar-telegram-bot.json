@@ -1,0 +1,432 @@
+{
+  "name": "Radar de Golpes - Bot Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        0,
+        64
+      ],
+      "id": "1223ee81-15a8-42db-b292-06423cdeac71",
+      "name": "Telegram Trigger",
+      "webhookId": "eaaf773a-3691-4289-9959-34dd046900ce",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "c75d3796-fc31-4036-b395-e53dffa4697e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "start"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "53d8e86e-d564-42b9-9ee9-4ed9c668e030",
+                    "leftValue": "={{ Array.isArray($json.message.photo) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "print"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "d99b840f-a323-4ab9-a5a9-3795c4bca595",
+                    "leftValue": "={{ ($json.message.text || '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "outro"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        192,
+        32
+      ],
+      "id": "43d4622b-343c-44f1-8c10-e5562b201dd6",
+      "name": "Tipo de mensagem"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Olá! Eu sou o Radar de Golpes 🔎\n\nMe mande o texto de uma mensagem, anúncio ou e-mail suspeito, ou um print, e eu digo o risco de ser golpe e por quê.\n\nNão envie dados pessoais (CPF, senhas, número de cartão).\n\nO Radar é uma ferramenta de apoio e pode errar. A decisão é sua.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        -256
+      ],
+      "id": "261c8ff4-e792-406c-b2d5-dcaf661f5af4",
+      "name": "Boas-vindas",
+      "webhookId": "9a7e8e58-54ad-4801-bbf5-8647cbb3bec1",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega o texto da mensagem e corta no limite da API (6.000 caracteres).\nconst mensagem = $('Telegram Trigger').first().json.message;\nconst texto = (mensagem.text || mensagem.caption || '').trim().slice(0, 6000);\nreturn [{ json: { texto } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        96
+      ],
+      "id": "b7c4ff75-fefe-43d6-8e0c-44ea654cafd0",
+      "name": "Preparar texto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://radar-golpes-ia.vercel.app/api/analisar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        672,
+        96
+      ],
+      "id": "79e05be6-0d2f-483d-8285-1e324caf2045",
+      "name": "Analisar na API",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "stivWrMX0HCNKZfT",
+          "name": "Token Radar API"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Monta a resposta do Telegram (HTML) a partir da análise da API.\nconst NIVEIS = { baixo: '🟢 Risco baixo', medio: '🟡 Risco médio', alto: '🔴 Risco alto' };\nconst CATEGORIAS = {\n  pagamento_antecipado: 'Pedido de pagamento adiantado',\n  comprovante_falso: 'Comprovante ou pagamento falso',\n  falso_intermediario: 'Falso intermediário ou entregador',\n  phishing_link: 'Link falso para roubar dados',\n  falso_parente_ou_conhecido: 'Falso parente ou conhecido',\n  falso_suporte_ou_banco: 'Falso banco ou suporte',\n  falsa_venda_preco_baixo: 'Venda falsa com preço baixo',\n  falso_aluguel_imovel: 'Aluguel falso',\n  falsa_vaga_emprego: 'Vaga de emprego falsa',\n  investimento_falso: 'Investimento falso',\n  premio_ou_restituicao_falsa: 'Prêmio ou restituição falsa',\n  outro_golpe: 'Outro tipo de golpe',\n  nenhum: 'Nenhum golpe identificado',\n};\n\n// O Telegram lê a resposta como HTML: <, > e & do conteúdo viram texto comum.\nconst escapar = (t) => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst cortar = (t, max) => (t.length > max ? t.slice(0, max - 1) + '…' : t);\n\nconst a = $input.first().json.analise;\nconst linhas = [\n  `<b>${NIVEIS[a.nivel_risco] || escapar(a.nivel_risco)} (${a.pontuacao}/100)</b>`,\n  escapar(CATEGORIAS[a.categoria] || a.categoria),\n  '',\n  escapar(a.explicacao),\n];\n\nconst sinais = (a.sinais || []).slice(0, 4);\nif (sinais.length) {\n  linhas.push('', a.nivel_risco === 'baixo' ? '<b>Trechos que indicam segurança</b>' : '<b>Sinais encontrados</b>');\n  for (const s of sinais) {\n    linhas.push(`• ${escapar(s.sinal)}: <i>\"${escapar(cortar(String(s.trecho), 200))}\"</i>`);\n  }\n}\n\nlinhas.push('', '<b>O que fazer</b>', escapar(a.recomendacao));\nlinhas.push('', '<i>O Radar é uma ferramenta de apoio e pode errar. A decisão é sua.</i>');\nreturn [{ json: { resposta: linhas.join('\\n') } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "124269a0-22ac-4652-b44a-472e73c86b5c",
+      "name": "Formatar resposta"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "={{ $json.resposta }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "reply_to_message_id": "={{ $('Telegram Trigger').first().json.message.message_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "d1ec40ef-d350-41fb-a7b2-43ced1ecbe51",
+      "name": "Responder",
+      "webhookId": "b302ea1f-d873-44e8-8b27-79e828980150",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "⚠️ Não consegui analisar agora. Mande o texto da mensagem ou do anúncio, ou um print, e tente de novo.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "reply_to_message_id": "={{ $('Telegram Trigger').first().json.message.message_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        192
+      ],
+      "id": "87263d8d-15c4-45e4-a4b8-2707648d5774",
+      "name": "Aviso de falha",
+      "webhookId": "05d45629-bdca-4e0a-90ac-ac59dd2a351a",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').first().json.message.photo.at(-1).file_id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        -96
+      ],
+      "id": "c7cb4aa4-1c8b-484c-9e39-57dacb66236a",
+      "name": "Baixar print",
+      "webhookId": "cf5bf27a-606f-436a-b347-c847c8ca92dd",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Converte o print baixado do Telegram em base64, o formato que a API recebe.\n// A legenda da foto, se houver, vai junto como texto.\nconst mensagem = $('Telegram Trigger').first().json.message;\nconst imagem = await this.helpers.getBinaryDataBuffer(0, 'data');\nreturn [{\n  json: {\n    texto: (mensagem.caption || '').trim().slice(0, 6000),\n    imagem_base64: imagem.toString('base64'),\n    imagem_media_type: 'image/jpeg', // o Telegram sempre converte fotos para JPEG\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -96
+      ],
+      "id": "b6731705-06d7-41bd-bf70-bb4ac34fa485",
+      "name": "Preparar print"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').first().json.message.chat.id }}",
+        "text": "Eu só consigo analisar texto ou print (foto). Mande o texto da mensagem ou do anúncio, ou um print da conversa. Se mandou o print como arquivo, mande como foto.",
+        "additionalFields": {
+          "appendAttribution": false,
+          "reply_to_message_id": "={{ $('Telegram Trigger').first().json.message.message_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        448,
+        256
+      ],
+      "id": "04fb7106-f203-49e4-b3d5-bedcbf41b5f3",
+      "name": "Formato não aceito",
+      "webhookId": "39acad64-9fec-471c-a17b-235daf419f85",
+      "credentials": {
+        "telegramApi": {
+          "id": "0hKTjAkyOdnkE2OM",
+          "name": "Token Telegram"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Tipo de mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tipo de mensagem": {
+      "main": [
+        [
+          {
+            "node": "Boas-vindas",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Baixar print",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar texto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formato não aceito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar texto": {
+      "main": [
+        [
+          {
+            "node": "Analisar na API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisar na API": {
+      "main": [
+        [
+          {
+            "node": "Formatar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aviso de falha",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar resposta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar print": {
+      "main": [
+        [
+          {
+            "node": "Preparar print",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar print": {
+      "main": [
+        [
+          {
+            "node": "Analisar na API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "nodeGroups": [],
+  "tags": []
+}

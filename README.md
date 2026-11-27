@@ -114,7 +114,8 @@ O projeto sobe na Vercel sem build próprio: a Vercel reconhece o FastAPI pela e
 
 Variáveis de ambiente cadastradas no painel da Vercel: `GEMINI_API_KEY`, `RADAR_TOKEN` e `RADAR_LIMITE_DEMO`. Nenhuma fica no código.
 
-_Bot: em construção._
+### Bot do Telegram (n8n)
+O bot roda num n8n local, ligado por `bash n8n/iniciar-bot.sh`, que abre um túnel HTTPS para o Telegram. Ele aceita texto e print, chama a mesma API da demo com o token e responde em cima da mensagem original. Como ligar, credenciais e cuidados: [`n8n/README.md`](n8n/README.md).
 
 ## Métricas
 
@@ -135,6 +136,7 @@ Modelo: `gemini-3.5-flash-lite`. Conjunto principal com 61 casos fictícios e co
 - Na camada grátis, o Google pode usar o conteúdo enviado. Por isso, a demo avisa para não colar dados pessoais.
 - Cerca de 1,5% das chamadas falharam por sobrecarga do provedor (erro 503). Na demo, essa falha aparece como erro 502, e um novo envio costuma funcionar.
 - O limite de análises por hora fica na memória de cada instância da Vercel. Com várias instâncias, alguém insistente consegue um pouco mais que 15. O pior caso é a cota grátis do dia acabar, sem cobrança, porque não há cartão cadastrado.
+- O bot do Telegram só responde enquanto o computador, o n8n e o túnel estão ligados. A demo na Vercel fica sempre no ar.
 - O radar apoia a decisão, não garante nada: um golpe novo, diferente de tudo que foi testado, pode passar.
 
 _Versão completa na Fase 8._
@@ -158,7 +160,7 @@ _Em construção._
 | 4 | Dataset e avaliação | ✅ concluída |
 | 5 | API e página de demo | ✅ concluída |
 | 6 | Deploy na Vercel | ✅ concluída |
-| 7 | Bot do Telegram (n8n) | ⏳ |
+| 7 | Bot do Telegram (n8n) | ✅ concluída |
 | 8 | Documentação final do portfólio | ⏳ |
 
 ### Diário
@@ -211,3 +213,13 @@ _Em construção._
   - **IP do visitante:** a Vercel sobrescreve o cabeçalho `X-Forwarded-For`, então ninguém consegue trocar o próprio IP no pedido para escapar do limite da demo.
   - **Segredos:** a chave do Gemini e o token do n8n ficam só nas variáveis de ambiente da Vercel e no `.env` local, que não vai para o Git.
   - **Testes no ar:** token errado devolveu 401. Em 17 pedidos seguidos sem token, o limite devolveu 429 depois da 15ª análise da hora. Com o token, 6 de 6 pedidos responderam em 1,7 a 3,4 s. Na rajada sem token, 2 pedidos falharam com 502 por instabilidade passageira do Gemini; a rodada seguinte não teve falha.
+- **Fase 7: bot do Telegram no n8n** ([`n8n/README.md`](n8n/README.md)).
+  - **O n8n é só o canal:** ele separa o tipo de mensagem (início, texto, print ou outro), chama a API e formata a resposta. A análise, as regras e o prompt continuam num lugar só, a API, então a demo e o bot dão sempre o mesmo resultado.
+  - **Print:** o Telegram não manda a imagem junto com a mensagem, só um código dela. O fluxo baixa o maior tamanho disponível e envia em base64, com a legenda como texto.
+  - **Falhas:** o nó da API tenta 2 vezes e, se ainda falhar, o bot pede para mandar de novo. Áudio, figurinha e arquivo recebem uma explicação do que o bot aceita.
+  - **Resposta:** usa o HTML do Telegram com os trechos citados escapados, para que um texto com marcação não quebre a mensagem. A resposta vai em cima da mensagem original, sem a assinatura do n8n.
+  - **Custo zero:** o n8n roda no meu computador, e um túnel rápido da Cloudflare cria o endereço HTTPS que o Telegram exige, sem conta. O preço é que o bot só responde com o computador ligado, e o endereço muda a cada vez.
+  - **Bug achado no teste de religar:** o n8n 2.49 tem um serviço novo de publicação que, ao ligar, mantém o endereço antigo do túnel registrado no Telegram, e o bot parou de responder. Confirmei a causa pelo Telegram (erro 530 no endereço antigo) e lendo o código do n8n. O script desliga esse serviço, e o modo antigo compara o endereço e o atualiza sozinho.
+  - **Privacidade:** o n8n guarda cada execução com a mensagem recebida. O script reduz esse prazo de 14 dias para 24 h.
+  - **Fluxo versionado:** o fluxo exportado fica em [`n8n/radar-telegram-bot.json`](n8n/radar-telegram-bot.json), sem tokens, sem dados da conversa de teste e desligado. Um teste confere isso, além do endereço da API e do aviso de falha.
+  - **Testes no Telegram:** golpe de falso parente (alto, 95), anúncio legítimo de móvel (baixo, 5, com os trechos que indicam segurança), print de cobrança falsa de entrega (alto, 90, trecho transcrito da imagem), áudio (formato não aceito) e resposta com o fluxo publicado depois de religar com um endereço novo. São 271 testes, todos sem chamar API.
